@@ -1,9 +1,8 @@
 import axios, { type AxiosInstance } from 'axios';
-
-const baseURL = typeof window !== 'undefined' ? '' : 'http://localhost:4000';
+import { API_BASE_URL, API_PREFIX } from './config';
 
 export const api: AxiosInstance = axios.create({
-  baseURL: baseURL + '/api',
+  baseURL: API_PREFIX,
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true,
 });
@@ -28,7 +27,7 @@ api.interceptors.response.use(
       const refresh = localStorage.getItem('refreshToken');
       if (refresh) {
         try {
-          const { data } = await axios.post(baseURL + '/api/auth/refresh', { refreshToken: refresh });
+          const { data } = await axios.post(API_PREFIX + '/auth/refresh', { refreshToken: refresh });
           localStorage.setItem('accessToken', data.data.accessToken);
           localStorage.setItem('refreshToken', data.data.refreshToken);
           original.headers.Authorization = 'Bearer ' + data.data.accessToken;

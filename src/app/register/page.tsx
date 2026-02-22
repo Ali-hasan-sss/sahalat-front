@@ -6,9 +6,12 @@ import { useRouter } from 'next/navigation';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { register, clearError } from '@/store/features/authSlice';
 import { getT } from '@/lib/i18n';
+import { AuthLayout } from '@/components/AuthLayout';
+import { ARAB_COUNTRIES } from '@/lib/arabCountries';
+import { API_PREFIX } from '@/lib/config';
 
-const baseURL = typeof window !== 'undefined' ? '' : 'http://localhost:4000';
-const apiPrefix = baseURL ? baseURL + '/api' : '/api';
+const inputClass =
+  'w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg px-4 py-3 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:ring-teal-600 dark:focus:border-teal-600 outline-none transition-shadow';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -16,11 +19,13 @@ export default function RegisterPage() {
   const { isLoading, error } = useAppSelector((s) => s.auth);
   const locale = useAppSelector((s) => s.language.locale);
   const t = getT(locale);
+  const isAr = locale === 'ar';
+
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [country, setCountry] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,17 +41,18 @@ export default function RegisterPage() {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = apiPrefix + '/auth/google';
+    window.location.href = API_PREFIX + '/auth/google';
   };
 
-  return (
-    <div className="max-w-md mx-auto mt-16 p-6 bg-white dark:bg-slate-800 rounded-xl shadow">
-      <h1 className="text-2xl font-bold mb-6 dark:text-white">{t.auth.registerTitle}</h1>
+  const getCountryName = (c: (typeof ARAB_COUNTRIES)[0]) =>
+    isAr ? c.nameAr : c.nameEn;
 
+  return (
+    <AuthLayout title={t.auth.registerTitle} tagline={t.auth.tagline}>
       <button
         type="button"
         onClick={handleGoogleLogin}
-        className="w-full flex items-center justify-center gap-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors mb-4"
+        className="w-full flex items-center justify-center gap-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 dark:text-slate-100 rounded-lg px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">
           <path
@@ -69,76 +75,114 @@ export default function RegisterPage() {
         {t.auth.loginWithGoogle}
       </button>
 
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex items-center gap-3 my-6">
         <div className="flex-1 h-px bg-slate-200 dark:bg-slate-600" />
-        <span className="text-sm text-slate-500 dark:text-slate-400">{t.auth.orDivider}</span>
+        <span className="text-sm text-slate-500 dark:text-slate-400">
+          {t.auth.orDivider}
+        </span>
         <div className="flex-1 h-px bg-slate-200 dark:bg-slate-600" />
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error && <p className="text-red-600 text-sm">{error}</p>}
-        <input
-          type="text"
-          placeholder={t.auth.firstName}
-          value={firstName}
-          onChange={(e) => setFirstName(e.target.value)}
-          className="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2"
+        {error && (
+          <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+        )}
+
+        {/* الاسم الأول والكنية على صف واحد */}
+        <div className="grid grid-cols-2 gap-3">
+          <input
+            type="text"
+            name="given-name"
+            autoComplete="given-name"
+            placeholder={t.auth.firstName}
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            className={inputClass}
+            required
+          />
+          <input
+            type="text"
+            name="family-name"
+            autoComplete="family-name"
+            placeholder={t.auth.lastName}
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            className={inputClass}
+            required
+          />
+        </div>
+
+        {/* البلد - select */}
+        <select
+          name="country"
+          autoComplete="country-name"
+          value={country}
+          onChange={(e) => setCountry(e.target.value)}
+          className={inputClass}
           required
-        />
-        <input
-          type="text"
-          placeholder={t.auth.lastName}
-          value={lastName}
-          onChange={(e) => setLastName(e.target.value)}
-          className="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2"
-          required
-        />
-        <input
-          type="email"
-          placeholder={t.auth.email}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2"
-          required
-        />
+        >
+          <option value="">{t.auth.selectCountry}</option>
+          {ARAB_COUNTRIES.map((c) => (
+            <option key={c.code} value={isAr ? c.nameAr : c.nameEn}>
+              {getCountryName(c)}
+            </option>
+          ))}
+        </select>
+
+        {/* رقم الهاتف */}
         <input
           type="tel"
+          name="tel"
+          autoComplete="tel"
           placeholder={t.auth.phone}
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          className="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2"
+          className={inputClass}
           required
         />
+
+        {/* الإيميل */}
         <input
-          type="text"
-          placeholder={t.auth.country}
-          value={country}
-          onChange={(e) => setCountry(e.target.value)}
-          className="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2"
+          type="email"
+          name="email"
+          autoComplete="email"
+          placeholder={t.auth.email}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className={inputClass}
           required
         />
+
+        {/* كلمة المرور */}
         <input
           type="password"
+          name="new-password"
+          autoComplete="new-password"
           placeholder={t.auth.password}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2"
+          className={inputClass}
           required
           minLength={8}
         />
+
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-teal-600 text-white py-2 rounded-lg hover:bg-teal-700 disabled:opacity-50"
+          className="w-full bg-teal-600 text-white py-3 rounded-lg hover:bg-teal-700 disabled:opacity-50 font-medium transition-colors"
         >
           {isLoading ? t.common.loading : t.auth.submitRegister}
         </button>
       </form>
-      <p className="mt-4 text-center text-sm">
-        <Link href="/login" className="text-teal-600 dark:text-teal-400">
+
+      <p className="mt-6 text-center text-sm">
+        <Link
+          href="/login"
+          className="text-teal-600 dark:text-teal-400 hover:underline"
+        >
           {t.auth.hasAccount}
         </Link>
       </p>
-    </div>
+    </AuthLayout>
   );
 }

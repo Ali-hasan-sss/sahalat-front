@@ -8,7 +8,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { logout } from '@/store/features/authSlice';
 import { ThemeLanguageSwitcher } from './ThemeLanguageSwitcher';
 import { getT } from '@/lib/i18n';
-import { Phone, User, Menu, X } from 'lucide-react';
+import { Phone, User, Menu, X, CalendarCheck, Heart, LogOut } from 'lucide-react';
 
 const PHONE = '+968 9701 8484';
 
@@ -98,7 +98,7 @@ export function AppHeader() {
               className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors text-sm"
             >
               <Phone size={18} className="shrink-0" aria-hidden />
-              {PHONE}
+              <span dir="ltr" className="tabular-nums">{PHONE}</span>
             </a>
             {isAuthenticated ? (
               <div className="relative" ref={menuRef}>
@@ -120,22 +120,25 @@ export function AppHeader() {
                     <Link
                       href="/bookings"
                       onClick={() => setUserMenuOpen(false)}
-                      className="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
                     >
+                      <CalendarCheck size={18} className="shrink-0" aria-hidden />
                       {t.nav.myBookings}
                     </Link>
                     <Link
                       href="/favorites"
                       onClick={() => setUserMenuOpen(false)}
-                      className="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
                     >
+                      <Heart size={18} className="shrink-0" aria-hidden />
                       {t.nav.favorites}
                     </Link>
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="w-full text-start px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                      className="w-full flex items-center gap-2 text-start px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
                     >
+                      <LogOut size={18} className="shrink-0" aria-hidden />
                       {t.nav.logout}
                     </button>
                   </div>
@@ -178,22 +181,25 @@ export function AppHeader() {
                     <Link
                       href="/bookings"
                       onClick={() => setUserMenuOpen(false)}
-                      className="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
                     >
+                      <CalendarCheck size={18} className="shrink-0" aria-hidden />
                       {t.nav.myBookings}
                     </Link>
                     <Link
                       href="/favorites"
                       onClick={() => setUserMenuOpen(false)}
-                      className="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
                     >
+                      <Heart size={18} className="shrink-0" aria-hidden />
                       {t.nav.favorites}
                     </Link>
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="w-full text-start px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                      className="w-full flex items-center gap-2 text-start px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
                     >
+                      <LogOut size={18} className="shrink-0" aria-hidden />
                       {t.nav.logout}
                     </button>
                   </div>
@@ -261,29 +267,32 @@ export function AppHeader() {
                 className="flex items-center gap-2 py-3 px-3 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
               >
                 <Phone size={18} aria-hidden />
-                {PHONE}
+                <span dir="ltr" className="tabular-nums">{PHONE}</span>
               </a>
               {isAuthenticated ? (
                 <div className="mt-2 space-y-1">
                   <Link
                     href="/bookings"
                     onClick={closeSidebar}
-                    className="block py-3 px-3 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    className="flex items-center gap-2 py-3 px-3 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
+                    <CalendarCheck size={18} className="shrink-0" aria-hidden />
                     {t.nav.myBookings}
                   </Link>
                   <Link
                     href="/favorites"
                     onClick={closeSidebar}
-                    className="block py-3 px-3 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    className="flex items-center gap-2 py-3 px-3 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
+                    <Heart size={18} className="shrink-0" aria-hidden />
                     {t.nav.favorites}
                   </Link>
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="w-full text-start py-3 px-3 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    className="w-full flex items-center gap-2 text-start py-3 px-3 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
+                    <LogOut size={18} className="shrink-0" aria-hidden />
                     {t.nav.logout}
                   </button>
                 </div>

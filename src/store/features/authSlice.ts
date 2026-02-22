@@ -2,9 +2,7 @@ import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/tool
 import axios from 'axios';
 import type { AuthState, User } from '@/types';
 import { endpoints } from '@/lib/endpoints';
-
-const baseURL = typeof window !== 'undefined' ? '' : 'http://localhost:4000';
-const apiPrefix = baseURL ? baseURL + '/api' : '/api';
+import { API_PREFIX } from '@/lib/config';
 
 const USER_KEY = 'sahalat_user';
 
@@ -24,7 +22,7 @@ export const login = createAsyncThunk<
   { rejectValue: string }
 >('auth/login', async (payload, { rejectWithValue }) => {
   try {
-    const { data } = await axios.post(apiPrefix + endpoints.auth.login(), payload);
+    const { data } = await axios.post(API_PREFIX + endpoints.auth.login(), payload);
     const { user, accessToken, refreshToken } = data.data;
     persistAuth(accessToken, refreshToken, user);
     return { user, accessToken, refreshToken };
@@ -40,7 +38,7 @@ export const register = createAsyncThunk<
   { rejectValue: string }
 >('auth/register', async (payload, { rejectWithValue }) => {
   try {
-    const { data } = await axios.post(apiPrefix + endpoints.auth.register(), payload);
+    const { data } = await axios.post(API_PREFIX + endpoints.auth.register(), payload);
     const { user, accessToken, refreshToken } = data.data;
     persistAuth(accessToken, refreshToken, user);
     return { user, accessToken, refreshToken };
@@ -59,7 +57,7 @@ export const completeProfile = createAsyncThunk<
   const token = state.auth.accessToken;
   if (!token) return rejectWithValue('يجب تسجيل الدخول');
   try {
-    const { data } = await axios.post(apiPrefix + endpoints.auth.completeProfile(), payload, {
+    const { data } = await axios.post(API_PREFIX + endpoints.auth.completeProfile(), payload, {
       headers: { Authorization: 'Bearer ' + token },
     });
     const user = data.data.user;
@@ -78,7 +76,7 @@ export const fetchMe = createAsyncThunk<User, void, { rejectValue: string }>(
     const token = state.auth.accessToken;
     if (!token) return rejectWithValue('لا يوجد token');
     try {
-      const { data } = await axios.get(apiPrefix + endpoints.auth.me(), {
+      const { data } = await axios.get(API_PREFIX + endpoints.auth.me(), {
         headers: { Authorization: 'Bearer ' + token },
       });
       return data.data;

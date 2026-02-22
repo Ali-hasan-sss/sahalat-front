@@ -6,9 +6,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { login, clearError } from '@/store/features/authSlice';
 import { getT } from '@/lib/i18n';
+import { AuthLayout } from '@/components/AuthLayout';
+import { API_PREFIX } from '@/lib/config';
 
-const baseURL = typeof window !== 'undefined' ? '' : 'http://localhost:4000';
-const apiPrefix = baseURL ? baseURL + '/api' : '/api';
+const inputClass =
+  'w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg px-4 py-3 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:focus:ring-teal-600 dark:focus:border-teal-600 outline-none transition-shadow';
 
 function LoginContent() {
   const router = useRouter();
@@ -44,21 +46,21 @@ function LoginContent() {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = apiPrefix + '/auth/google';
+    window.location.href = API_PREFIX + '/auth/google';
   };
 
   return (
-    <div className="max-w-md mx-auto mt-16 p-6 bg-white dark:bg-slate-800 rounded-xl shadow">
-      <h1 className="text-2xl font-bold mb-6 dark:text-white">{t.auth.loginTitle}</h1>
-
+    <AuthLayout title={t.auth.loginTitle} tagline={t.auth.tagline}>
       {(error || errorParam) && (
-        <p className="text-red-600 text-sm mb-4">{error || errorParam}</p>
+        <p className="text-red-600 dark:text-red-400 text-sm mb-4">
+          {error || errorParam}
+        </p>
       )}
 
       <button
         type="button"
         onClick={handleGoogleLogin}
-        className="w-full flex items-center justify-center gap-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+        className="w-full flex items-center justify-center gap-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 dark:text-slate-100 rounded-lg px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">
           <path
@@ -81,49 +83,64 @@ function LoginContent() {
         {t.auth.loginWithGoogle}
       </button>
 
-      <div className="flex items-center gap-3 my-4">
+      <div className="flex items-center gap-3 my-6">
         <div className="flex-1 h-px bg-slate-200 dark:bg-slate-600" />
-        <span className="text-sm text-slate-500 dark:text-slate-400">{t.auth.orDivider}</span>
+        <span className="text-sm text-slate-500 dark:text-slate-400">
+          {t.auth.orDivider}
+        </span>
         <div className="flex-1 h-px bg-slate-200 dark:bg-slate-600" />
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
           type="email"
+          name="email"
+          autoComplete="email"
           placeholder={t.auth.email}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2"
+          className={inputClass}
           required
         />
         <input
           type="password"
+          name="current-password"
+          autoComplete="current-password"
           placeholder={t.auth.password}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2"
+          className={inputClass}
           required
         />
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-teal-600 text-white py-2 rounded-lg hover:bg-teal-700 disabled:opacity-50"
+          className="w-full bg-teal-600 text-white py-3 rounded-lg hover:bg-teal-700 disabled:opacity-50 font-medium transition-colors"
         >
           {isLoading ? t.common.loading : t.auth.submitLogin}
         </button>
       </form>
-      <p className="mt-4 text-center text-sm">
-        <Link href="/register" className="text-teal-600 dark:text-teal-400">
+      <p className="mt-6 text-center text-sm">
+        <Link
+          href="/register"
+          className="text-teal-600 dark:text-teal-400 hover:underline"
+        >
           {t.auth.noAccount}
         </Link>
       </p>
-    </div>
+    </AuthLayout>
   );
 }
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="max-w-md mx-auto mt-16 p-6 bg-white dark:bg-slate-800 rounded-xl shadow animate-pulse h-80" />}>
+    <Suspense
+      fallback={
+        <AuthLayout title="" tagline="">
+          <div className="h-64 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse" />
+        </AuthLayout>
+      }
+    >
       <LoginContent />
     </Suspense>
   );

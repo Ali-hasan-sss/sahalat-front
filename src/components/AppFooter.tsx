@@ -54,7 +54,7 @@ export function AppFooter() {
               <li className="flex items-center gap-2">
                 <Phone size={18} className="shrink-0 text-slate-400" aria-hidden />
                 <a href={`tel:${PHONE.replace(/\s/g, '')}`} className="hover:text-white transition-colors">
-                  {PHONE}
+                  <span dir="ltr" className="tabular-nums">{PHONE}</span>
                 </a>
               </li>
               <li className="flex items-center gap-2">

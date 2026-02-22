@@ -6,9 +6,7 @@ import { useAppDispatch } from '@/store/hooks';
 import { setAuth } from '@/store/features/authSlice';
 import axios from 'axios';
 import { endpoints } from '@/lib/endpoints';
-
-const baseURL = typeof window !== 'undefined' ? '' : 'http://localhost:4000';
-const apiPrefix = baseURL ? baseURL + '/api' : '/api';
+import { API_PREFIX } from '@/lib/config';
 
 function AuthCallbackContent() {
   const router = useRouter();
@@ -28,7 +26,7 @@ function AuthCallbackContent() {
 
     const persistAndRedirect = async () => {
       try {
-        const { data } = await axios.get(apiPrefix + endpoints.auth.me(), {
+        const { data } = await axios.get(API_PREFIX + endpoints.auth.me(), {
           headers: { Authorization: 'Bearer ' + accessToken },
         });
         const user = data.data;
