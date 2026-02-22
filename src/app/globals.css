@@ -36,3 +36,138 @@ body {
 .prose-quill-content li {
   margin-block: 0.25rem;
 }
+
+/* أنيميشن الهيرو - ظهور عند التحميل */
+@keyframes hero-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-hero-entrance {
+  animation: hero-fade-up 0.7s ease-out forwards;
+  animation-fill-mode: both;
+}
+
+/* أنيميشن الأقسام - ظهور عند دخول الشاشة */
+.animate-section-entrance {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+.animate-section-entrance.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* أنيميشنات متنوعة لعناصر الصفحة الرئيسية */
+.animate-on-scroll {
+  opacity: 0;
+  transition-property: opacity, transform, filter;
+  transition-timing-function: ease-out;
+  transition-duration: 0.6s;
+}
+.animate-on-scroll.in-view {
+  opacity: 1;
+}
+
+/* fadeUp - صعود مع تلاشي */
+.anim-fade-up { transform: translateY(32px); }
+.anim-fade-up.in-view { transform: translateY(0); }
+
+/* fadeIn - تلاشي بسيط */
+.anim-fade-in { transform: none; }
+
+/* slideLeft - انزلاق من اليمين */
+.anim-slide-left { transform: translateX(48px); }
+.anim-slide-left.in-view { transform: translateX(0); }
+
+/* slideRight - انزلاق من اليسار */
+.anim-slide-right { transform: translateX(-48px); }
+.anim-slide-right.in-view { transform: translateX(0); }
+
+/* scaleUp - تكبير مع ظهور */
+.anim-scale-up { transform: scale(0.92); }
+.anim-scale-up.in-view { transform: scale(1); }
+
+/* blurIn - ظهور مع إزالة الضبابية */
+.anim-blur-in {
+  filter: blur(8px);
+  transform: translateY(16px);
+}
+.anim-blur-in.in-view {
+  filter: blur(0);
+  transform: translateY(0);
+}
+
+/* zoomIn - تكبير قوي */
+.anim-zoom-in { transform: scale(0.88); }
+.anim-zoom-in.in-view { transform: scale(1); }
+
+/* slideUpBounce - صعود مع مرونة */
+@keyframes slide-up-bounce {
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.anim-slide-up-bounce {
+  transition: none;
+}
+.anim-slide-up-bounce.in-view {
+  animation: slide-up-bounce 0.65s ease-out forwards;
+}
+
+/* تأخير متتالي للعناصر الفرعية (stagger) - يعمل عند ظهور الأب أو أي سلف */
+.animate-stagger-children > * {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+.animate-on-scroll.in-view .animate-stagger-children > *:nth-child(1) { transition-delay: 0.05s; }
+.animate-on-scroll.in-view .animate-stagger-children > *:nth-child(2) { transition-delay: 0.1s; }
+.animate-on-scroll.in-view .animate-stagger-children > *:nth-child(3) { transition-delay: 0.15s; }
+.animate-on-scroll.in-view .animate-stagger-children > *:nth-child(4) { transition-delay: 0.2s; }
+.animate-on-scroll.in-view .animate-stagger-children > *:nth-child(5) { transition-delay: 0.25s; }
+.animate-on-scroll.in-view .animate-stagger-children > *:nth-child(6) { transition-delay: 0.3s; }
+.animate-on-scroll.in-view .animate-stagger-children > * {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* قوس دوار حول الأيقونة - مستمر مع إبطاء عند الهوفر */
+@keyframes icon-arc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.program-icon-arc {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  pointer-events: none;
+  animation: icon-arc-spin 2s linear infinite;
+}
+.program-card:hover .program-icon-arc {
+  animation-duration: 4s;
+}
+.program-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.program-card:hover {
+  transform: scale(1.03);
+}

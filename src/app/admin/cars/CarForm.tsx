@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { endpoints } from '@/lib/endpoints';
 import { FileUpload } from '@/components/FileUpload';
 import { getImageUrl } from '@/lib/upload';
+import { ImagePlus, X } from 'lucide-react';
 
 const CATEGORIES = [
   { value: 'ECONOMY', labelAr: 'Economy', labelEn: 'Economy' },
@@ -57,27 +58,6 @@ type Props = {
 
 const inputClass = 'w-full border dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2';
 
-function PendingImagePreview({ file, onRemove }: { file: File; onRemove: (e: React.MouseEvent) => void }) {
-  const [url, setUrl] = useState('');
-  useEffect(() => {
-    const u = URL.createObjectURL(file);
-    setUrl(u);
-    return () => URL.revokeObjectURL(u);
-  }, [file]);
-  return (
-    <div className="relative group">
-      <img src={url} alt="" className="w-20 h-20 object-cover rounded-lg border dark:border-slate-600" />
-      <button
-        type="button"
-        onClick={onRemove}
-        className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full text-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow hover:bg-red-600"
-      >
-        ×
-      </button>
-    </div>
-  );
-}
-
 export function CarForm({ car, onSuccess, onClose }: Props) {
   const isEdit = !!car;
   const [name, setName] = useState(car?.name ?? '');
@@ -102,8 +82,29 @@ export function CarForm({ car, onSuccess, onClose }: Props) {
   const [error, setError] = useState('');
   const [images, setImages] = useState<{ id: string; imagePath: string }[]>(car?.images ?? []);
   const [pendingImages, setPendingImages] = useState<File[]>([]);
-  const [dragOver, setDragOver] = useState(false);
-  const pendingInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  const addImageFiles = (files: FileList | File[]) => {
+    const list = Array.isArray(files) ? files : Array.from(files);
+    const valid = list.filter((f) => f.type.match(/^image\/(jpeg|jpg|png|gif|webp)$/i));
+    setPendingImages((prev) => [...prev, ...valid]);
+  };
+
+  const addImages = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.length) {
+      addImageFiles(e.target.files);
+      e.target.value = '';
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (e.dataTransfer.files?.length) addImageFiles(e.dataTransfer.files);
+  };
+
+  const removePendingImage = (idx: number) => {
+    setPendingImages((prev) => prev.filter((_, i) => i !== idx));
+  };
 
   useEffect(() => {
     if (!car) {
@@ -183,14 +184,18 @@ export function CarForm({ car, onSuccess, onClose }: Props) {
         onSuccess();
       } else {
         const { data } = await api.post(endpoints.cars.create(), payload);
-        const createdCar = data.data as Car;
+        const createdCar = data?.data as Car | undefined;
+        const createdId = createdCar?.id;
+        if (!createdId) {
+          throw new Error('لم يتم إنشاء السيارة بشكل صحيح');
+        }
         for (const file of pendingImages) {
           const fd = new FormData();
           fd.append('image', file);
-          await api.post(endpoints.cars.addImage(createdCar.id), fd);
+          await api.post(endpoints.cars.addImage(createdId), fd);
         }
         setPendingImages([]);
-        onSuccess(createdCar);
+        onSuccess(createdCar!);
       }
     } catch (e) {
       setError((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'فشل الحفظ');
@@ -447,123 +452,107 @@ export function CarForm({ car, onSuccess, onClose }: Props) {
               <label htmlFor="isActive" className="text-sm dark:text-slate-300">متاحة للحجز</label>
             </div>
 
-            {/* الصور - عند الإضافة (معلقة) أو عند التعديل */}
-            {!car && (
-              <div className="border-t dark:border-slate-600 pt-5 space-y-4">
-                <h3 className="text-sm font-semibold dark:text-slate-300">صور السيارة (تُرفع مع الحفظ)</h3>
-                <div
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    setDragOver(false);
-                    const files = e.dataTransfer.files;
-                    if (files?.length) {
-                      const valid = Array.from(files).filter((f) =>
-                        f.type.match(/^image\/(jpeg|jpg|png|gif|webp)$/i)
-                      );
-                      if (valid.length) setPendingImages((p) => [...p, ...valid]);
-                    }
-                  }}
-                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                  onDragLeave={() => setDragOver(false)}
-                  onClick={() => pendingInputRef.current?.click()}
-                  className={`border-2 border-dashed rounded-xl p-6 text-center transition cursor-pointer ${
-                    dragOver
-                      ? 'border-[#b8860b] bg-amber-50/50 dark:bg-amber-900/20'
-                      : 'border-slate-300 dark:border-slate-600 hover:border-[#b8860b]'
-                  }`}
-                >
+            {/* رفع الصور */}
+            <div>
+              {isEdit && car ? (
+                <>
+                  {images.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {images.map((img) => (
+                        <div key={img.id} className="relative group">
+                          <img
+                            src={getImageUrl(img.imagePath)}
+                            alt=""
+                            className="w-20 h-20 object-cover rounded-lg border dark:border-slate-600"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveImage(img.id)}
+                            className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full text-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <FileUpload
+                    label="إضافة صورة للسيارة"
+                    uploadUrl={endpoints.cars.addImage(car.id)}
+                    fieldName="image"
+                    onSuccess={async () => {
+                      try {
+                        const { data } = await api.get(endpoints.cars.byId(car.id));
+                        setImages(data.data?.images ?? []);
+                      } catch {
+                        onSuccess();
+                      }
+                    }}
+                    onError={(msg) => setError(msg)}
+                  />
+                </>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium mb-1 dark:text-slate-300">صور السيارة</label>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">يمكنك رفع صورة أو أكثر (تُرفع بعد إنشاء السيارة)</p>
                   <input
-                    ref={pendingInputRef}
+                    ref={imageInputRef}
                     type="file"
                     accept="image/jpeg,image/png,image/gif,image/webp"
                     multiple
-                    onChange={(e) => {
-                      const files = e.target.files;
-                      if (files?.length) setPendingImages((p) => [...p, ...Array.from(files)]);
-                      e.target.value = '';
-                    }}
+                    onChange={addImages}
                     className="hidden"
                   />
-                  <p className="text-slate-500 dark:text-slate-400">
-                    اسحب الصور هنا أو اضغط للاختيار
-                  </p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                    jpeg, png, gif, webp
-                  </p>
-                </div>
-                {pendingImages.length > 0 && (
-                  <div className="flex flex-wrap gap-3">
-                    {pendingImages.map((file, idx) => (
-                      <PendingImagePreview
-                        key={idx}
-                        file={file}
-                        onRemove={(e) => {
-                          e.stopPropagation();
-                          setPendingImages((p) => p.filter((_, i) => i !== idx));
-                        }}
-                      />
-                    ))}
+                  <div
+                    onClick={() => imageInputRef.current?.click()}
+                    onDrop={handleDrop}
+                    onDragOver={(e) => e.preventDefault()}
+                    className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-4 text-center cursor-pointer hover:border-teal-500 dark:hover:border-teal-500 transition-colors"
+                  >
+                    <ImagePlus size={32} className="mx-auto text-slate-400 dark:text-slate-500 mb-2" />
+                    <span className="text-sm text-slate-500 dark:text-slate-400">
+                      انقر لاختيار صور أو اسحبها هنا
+                    </span>
                   </div>
-                )}
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  اختر الصور ثم احفظ السيارة لرفعها
-                </p>
-              </div>
-            )}
-
-            {/* الصور - عند التعديل أو بعد الإضافة */}
-            {car && (
-              <div className="border-t dark:border-slate-600 pt-5 space-y-4">
-                <h3 className="text-sm font-semibold dark:text-slate-300">الصور</h3>
-                {images.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {images.map((img) => (
-                      <div key={img.id} className="relative group">
-                        <img
-                          src={getImageUrl(img.imagePath)}
-                          alt=""
-                          className="w-20 h-20 object-cover rounded-lg border dark:border-slate-600"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveImage(img.id)}
-                          className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full text-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow"
+                  {pendingImages.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {pendingImages.map((file, idx) => (
+                        <div
+                          key={idx}
+                          className="relative w-16 h-16 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-600 group"
                         >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <FileUpload
-                  label="إضافة صورة للسيارة"
-                  uploadUrl={endpoints.cars.addImage(car.id)}
-                  fieldName="image"
-                  onSuccess={async () => {
-                    try {
-                      const { data } = await api.get(endpoints.cars.byId(car.id));
-                      setImages(data.data?.images ?? []);
-                    } catch {
-                      onSuccess();
-                    }
-                  }}
-                  onError={(msg) => setError(msg)}
-                />
-              </div>
-            )}
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removePendingImage(idx)}
+                            className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X size={20} className="text-white" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
-            <div className="flex gap-2 pt-4 border-t dark:border-slate-600">
+            <div className="flex gap-2 pt-4">
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 bg-[#b8860b] text-white py-2 rounded-lg hover:bg-[#9a7209] disabled:opacity-50 font-medium"
+                className="flex-1 bg-teal-600 hover:bg-teal-700 text-white py-2.5 rounded-xl font-medium disabled:opacity-50 transition-colors"
               >
                 {loading ? 'جاري الحفظ...' : car ? 'حفظ التعديلات' : 'إضافة السيارة'}
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="px-6 py-2 border dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                className="px-5 py-2.5 border dark:border-slate-600 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 dark:text-slate-300"
               >
                 إلغاء
               </button>

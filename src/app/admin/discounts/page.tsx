@@ -6,6 +6,20 @@ import { useAppSelector } from '@/store/hooks';
 import { api } from '@/lib/api';
 import { endpoints } from '@/lib/endpoints';
 import DiscountForm from '@/app/admin/discounts/DiscountForm';
+import { AdminTableLoader } from '@/app/admin/components/AdminTableLoader';
+import { AdminActionButtons } from '@/app/admin/components/AdminActionButtons';
+import { DeleteConfirmModal } from '@/app/admin/components/DeleteConfirmModal';
+import {
+  tableWrapper,
+  tableClass,
+  theadClass,
+  thClass,
+  tbodyTrClass,
+  tdClass,
+  badgeActive,
+  badgeInactive,
+  AdminPagination,
+} from '@/app/admin/components/AdminTable';
 
 type Discount = {
   id: string;
@@ -38,7 +52,7 @@ export default function AdminDiscountsPage() {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingDiscount, setEditingDiscount] = useState<Discount | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -85,7 +99,7 @@ export default function AdminDiscountsPage() {
   const handleDelete = async (id: string) => {
     try {
       await api.delete(endpoints.discounts.delete(id));
-      setDeleteConfirm(null);
+      setDeleteModal({ open: false, id: null });
       fetchDiscounts();
     } catch (e) {
       setError((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'فشل الحذف');
@@ -119,121 +133,93 @@ export default function AdminDiscountsPage() {
   const totalPages = Math.ceil(total / limit);
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">إدارة الخصومات</h1>
+    <div dir="rtl">
+      <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+        <h1 className="text-xl font-bold text-slate-800 dark:text-white">إدارة الخصومات</h1>
         <button
           type="button"
           onClick={openAdd}
-          className="bg-[#b8860b] text-white px-4 py-2 rounded-lg hover:bg-[#9a7209]"
+          className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors"
         >
           إضافة خصم
         </button>
       </div>
 
       <div className="flex gap-2 mb-4">
-        <button
-          type="button"
-          onClick={() => setTypeFilter('')}
-          className={`px-3 py-1.5 rounded-lg text-sm ${!typeFilter ? 'bg-[#b8860b] text-white' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}
-        >
-          الكل
-        </button>
-        <button
-          type="button"
-          onClick={() => setTypeFilter('TRIP')}
-          className={`px-3 py-1.5 rounded-lg text-sm ${typeFilter === 'TRIP' ? 'bg-[#b8860b] text-white' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}
-        >
-          رحلات
-        </button>
-        <button
-          type="button"
-          onClick={() => setTypeFilter('CAR')}
-          className={`px-3 py-1.5 rounded-lg text-sm ${typeFilter === 'CAR' ? 'bg-[#b8860b] text-white' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}
-        >
-          سيارات
-        </button>
+        {(['', 'TRIP', 'CAR'] as const).map((v) => (
+          <button
+            key={v || 'all'}
+            type="button"
+            onClick={() => setTypeFilter(v)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+              typeFilter === v
+                ? 'bg-teal-600 text-white'
+                : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
+            }`}
+          >
+            {v === '' ? 'الكل' : v === 'TRIP' ? 'رحلات' : 'سيارات'}
+          </button>
+        ))}
       </div>
 
-      {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">{error}</div>}
+      {error && <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-xl text-sm">{error}</div>}
 
       {loading ? (
-        <p className="text-slate-500">جاري التحميل...</p>
+        <AdminTableLoader rows={8} cols={8} />
       ) : discounts.length === 0 ? (
-        <p className="text-slate-500">لا توجد خصومات</p>
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-12 text-center text-slate-500 dark:text-slate-400">
+          لا توجد خصومات
+        </div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className="text-right p-3 font-medium">النوع</th>
-                <th className="text-right p-3 font-medium">المرجع</th>
-                <th className="text-right p-3 font-medium">نوع الخصم</th>
-                <th className="text-right p-3 font-medium">القيمة</th>
-                <th className="text-right p-3 font-medium">الخصم الفعلي</th>
-                <th className="text-right p-3 font-medium">من - إلى</th>
-                <th className="text-right p-3 font-medium">الحالة</th>
-                <th className="text-right p-3 font-medium">إجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {discounts.map((d) => (
-                <tr key={d.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="p-3">{d.type === 'TRIP' ? 'رحلة' : 'سيارة'}</td>
-                  <td className="p-3 font-medium">{getReferenceName(d.type, d.referenceId)}</td>
-                  <td className="p-3">{d.discountType === 'PERCENTAGE' ? 'نسبة مئوية' : 'مبلغ ثابت'}</td>
-                  <td className="p-3">
-                    {d.discountType === 'PERCENTAGE' ? `${d.value}%` : `${d.value} ر.ع`}
-                  </td>
-                  <td className="p-3">
-                    {d.calculatedDiscountAmount != null
-                      ? `${d.calculatedDiscountAmount.toFixed(3)} ر.ع`
-                      : '—'}
-                  </td>
-                  <td className="p-3 text-sm">
-                    {new Date(d.startDate).toLocaleDateString('ar-SA')} — {new Date(d.endDate).toLocaleDateString('ar-SA')}
-                  </td>
-                  <td className="p-3">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${d.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'}`}>
-                      {d.isActive ? 'نشط' : 'غير نشط'}
-                    </span>
-                  </td>
-                  <td className="p-3">
-                    <div className="flex gap-2 justify-end">
-                      <button type="button" onClick={() => openEdit(d)} className="text-[#b8860b] hover:underline text-sm">
-                        تعديل
-                      </button>
-                      {deleteConfirm === d.id ? (
-                        <>
-                          <button type="button" onClick={() => handleDelete(d.id)} className="text-red-600 hover:underline text-sm">
-                            تأكيد
-                          </button>
-                          <button type="button" onClick={() => setDeleteConfirm(null)} className="text-slate-500 hover:underline text-sm">
-                            إلغاء
-                          </button>
-                        </>
-                      ) : (
-                        <button type="button" onClick={() => setDeleteConfirm(d.id)} className="text-red-600 hover:underline text-sm">
-                          حذف
-                        </button>
-                      )}
-                    </div>
-                  </td>
+        <div className={tableWrapper}>
+          <div className="overflow-x-auto">
+            <table className={tableClass}>
+              <thead className={theadClass}>
+                <tr>
+                  <th className={thClass}>النوع</th>
+                  <th className={thClass}>المرجع</th>
+                  <th className={thClass}>نوع الخصم</th>
+                  <th className={thClass}>القيمة</th>
+                  <th className={thClass}>الخصم الفعلي</th>
+                  <th className={thClass}>من - إلى</th>
+                  <th className={thClass}>الحالة</th>
+                  <th className={thClass}>إجراءات</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          {totalPages > 1 && (
-            <div className="flex justify-center gap-2 p-4 border-t border-slate-200">
-              <button type="button" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="px-3 py-1 rounded border disabled:opacity-50 disabled:cursor-not-allowed">
-                السابق
-              </button>
-              <span className="px-3 py-1">{page} / {totalPages}</span>
-              <button type="button" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} className="px-3 py-1 rounded border disabled:opacity-50 disabled:cursor-not-allowed">
-                التالي
-              </button>
-            </div>
-          )}
+              </thead>
+              <tbody>
+                {discounts.map((d) => (
+                  <tr key={d.id} className={tbodyTrClass}>
+                    <td className={tdClass}>{d.type === 'TRIP' ? 'رحلة' : 'سيارة'}</td>
+                    <td className={tdClass + ' font-medium'}>{getReferenceName(d.type, d.referenceId)}</td>
+                    <td className={tdClass}>{d.discountType === 'PERCENTAGE' ? 'نسبة مئوية' : 'مبلغ ثابت'}</td>
+                    <td className={tdClass}>
+                      {d.discountType === 'PERCENTAGE' ? `${d.value}%` : `${d.value} ر.ع`}
+                    </td>
+                    <td className={tdClass}>
+                      {d.calculatedDiscountAmount != null
+                        ? `${d.calculatedDiscountAmount.toFixed(3)} ر.ع`
+                        : '—'}
+                    </td>
+                    <td className={tdClass}>
+                      {new Date(d.startDate).toLocaleDateString('ar-SA')} — {new Date(d.endDate).toLocaleDateString('ar-SA')}
+                    </td>
+                    <td className={tdClass}>
+                      <span className={d.isActive ? badgeActive : badgeInactive}>
+                        {d.isActive ? 'نشط' : 'غير نشط'}
+                      </span>
+                    </td>
+                    <td className={tdClass}>
+                      <AdminActionButtons
+                        onEdit={() => openEdit(d)}
+                        onDelete={() => setDeleteModal({ open: true, id: d.id })}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <AdminPagination page={page} totalPages={totalPages} onPrev={() => setPage((p) => p - 1)} onNext={() => setPage((p) => p + 1)} />
         </div>
       )}
 
@@ -246,6 +232,12 @@ export default function AdminDiscountsPage() {
           onClose={() => { setShowForm(false); setEditingDiscount(null); }}
         />
       )}
+
+      <DeleteConfirmModal
+        open={deleteModal.open}
+        onClose={() => setDeleteModal({ open: false, id: null })}
+        onConfirm={() => deleteModal.id && handleDelete(deleteModal.id)}
+      />
     </div>
   );
 }

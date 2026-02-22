@@ -7,6 +7,20 @@ import { api } from '@/lib/api';
 import { endpoints } from '@/lib/endpoints';
 import { getImageUrl } from '@/lib/upload';
 import { LandmarkForm } from './LandmarkForm';
+import { AdminTableLoader } from '@/app/admin/components/AdminTableLoader';
+import { AdminActionButtons } from '@/app/admin/components/AdminActionButtons';
+import { DeleteConfirmModal } from '@/app/admin/components/DeleteConfirmModal';
+import {
+  tableWrapper,
+  tableClass,
+  theadClass,
+  thClass,
+  tbodyTrClass,
+  tdClass,
+  badgeActive,
+  badgeInactive,
+  AdminPagination,
+} from '@/app/admin/components/AdminTable';
 
 type Landmark = {
   id: string;
@@ -32,7 +46,7 @@ export default function AdminLandmarksPage() {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingLandmark, setEditingLandmark] = useState<Landmark | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -72,7 +86,7 @@ export default function AdminLandmarksPage() {
   const handleDelete = async (id: string) => {
     try {
       await api.delete(endpoints.landmarks.delete(id));
-      setDeleteConfirm(null);
+      setDeleteModal({ open: false, id: null });
       fetchLandmarks();
     } catch (e) {
       setError((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'فشل الحذف');
@@ -105,138 +119,87 @@ export default function AdminLandmarksPage() {
   const totalPages = Math.ceil(total / limit);
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">إدارة المعالم السياحية</h1>
+    <div dir="rtl">
+      <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+        <h1 className="text-xl font-bold text-slate-800 dark:text-white">إدارة المعالم السياحية</h1>
         <button
           type="button"
           onClick={openAdd}
-          className="bg-[#b8860b] text-white px-4 py-2 rounded-lg hover:bg-[#9a7209]"
+          className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors"
         >
           إضافة معلم
         </button>
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+        <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-xl text-sm">
           {error}
         </div>
       )}
 
       {loading ? (
-        <p className="text-slate-500">جاري التحميل...</p>
+        <AdminTableLoader rows={6} cols={5} />
       ) : landmarks.length === 0 ? (
-        <p className="text-slate-500">لا توجد معالم سياحية</p>
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-12 text-center text-slate-500 dark:text-slate-400">
+          لا توجد معالم سياحية
+        </div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className="text-right p-3 font-medium">الصورة</th>
-                <th className="text-right p-3 font-medium">الاسم</th>
-                <th className="text-right p-3 font-medium">الموقع</th>
-                <th className="text-right p-3 font-medium">الحالة</th>
-                <th className="text-right p-3 font-medium">إجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {landmarks.map((lm) => (
-                <tr key={lm.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="p-3">
-                    <div className="w-12 h-12 rounded overflow-hidden bg-slate-200">
-                      {lm.images?.[0] ? (
-                        <img
-                          src={getImageUrl(lm.images[0].imagePath)}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-xs text-slate-400 flex items-center justify-center h-full">—</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    <span className="font-medium">{lm.nameAr ?? lm.name}</span>
-                  </td>
-                  <td className="p-3 text-slate-600 text-sm max-w-[200px] truncate">
-                    {lm.location ?? '—'}
-                  </td>
-                  <td className="p-3">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleActive(lm)}
-                      className={`px-2 py-1 rounded text-xs font-medium ${
-                        lm.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'
-                      }`}
-                    >
-                      {lm.isActive ? 'نشط' : 'غير نشط'}
-                    </button>
-                  </td>
-                  <td className="p-3">
-                    <div className="flex gap-2 justify-end">
+        <div className={tableWrapper}>
+          <div className="overflow-x-auto">
+            <table className={tableClass}>
+              <thead className={theadClass}>
+                <tr>
+                  <th className={thClass}>الصورة</th>
+                  <th className={thClass}>الاسم</th>
+                  <th className={thClass}>الموقع</th>
+                  <th className={thClass}>الحالة</th>
+                  <th className={thClass}>إجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {landmarks.map((lm) => (
+                  <tr key={lm.id} className={tbodyTrClass}>
+                    <td className={tdClass}>
+                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-600 shrink-0">
+                        {lm.images?.[0] ? (
+                          <img
+                            src={getImageUrl(lm.images[0].imagePath)}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-xs text-slate-400 flex items-center justify-center h-full">—</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className={tdClass}>
+                      <span className="font-medium">{lm.nameAr ?? lm.name}</span>
+                    </td>
+                    <td className={tdClass + ' max-w-[200px] truncate'}>
+                      {lm.location ?? '—'}
+                    </td>
+                    <td className={tdClass}>
                       <button
                         type="button"
-                        onClick={() => openEdit(lm)}
-                        className="text-[#b8860b] hover:underline text-sm"
+                        onClick={() => handleToggleActive(lm)}
+                        className={lm.isActive ? badgeActive : badgeInactive}
                       >
-                        تعديل
+                        {lm.isActive ? 'نشط' : 'غير نشط'}
                       </button>
-                      {deleteConfirm === lm.id ? (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(lm.id)}
-                            className="text-red-600 hover:underline text-sm"
-                          >
-                            تأكيد
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeleteConfirm(null)}
-                            className="text-slate-500 hover:underline text-sm"
-                          >
-                            إلغاء
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setDeleteConfirm(lm.id)}
-                          className="text-red-600 hover:underline text-sm"
-                        >
-                          حذف
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {totalPages > 1 && (
-            <div className="flex justify-center gap-2 p-4 border-t border-slate-200">
-              <button
-                type="button"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="px-3 py-1 rounded border disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                السابق
-              </button>
-              <span className="px-3 py-1">
-                {page} / {totalPages}
-              </span>
-              <button
-                type="button"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-                className="px-3 py-1 rounded border disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                التالي
-              </button>
-            </div>
-          )}
+                    </td>
+                    <td className={tdClass}>
+                      <AdminActionButtons
+                        onView={() => router.push(`/landmarks/${lm.id}`)}
+                        onEdit={() => openEdit(lm)}
+                        onDelete={() => setDeleteModal({ open: true, id: lm.id })}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <AdminPagination page={page} totalPages={totalPages} onPrev={() => setPage((p) => p - 1)} onNext={() => setPage((p) => p + 1)} />
         </div>
       )}
 
@@ -247,6 +210,12 @@ export default function AdminLandmarksPage() {
           onClose={closeForm}
         />
       )}
+
+      <DeleteConfirmModal
+        open={deleteModal.open}
+        onClose={() => setDeleteModal({ open: false, id: null })}
+        onConfirm={() => deleteModal.id && handleDelete(deleteModal.id)}
+      />
     </div>
   );
 }

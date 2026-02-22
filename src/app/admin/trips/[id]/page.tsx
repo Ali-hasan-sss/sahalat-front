@@ -6,8 +6,11 @@ import Link from 'next/link';
 import { useAppSelector } from '@/store/hooks';
 import { api } from '@/lib/api';
 import { endpoints } from '@/lib/endpoints';
+import { Check, Clock, Building2, Utensils } from 'lucide-react';
 import { getImageUrl } from '@/lib/upload';
 import { getFeatureIconOptions, FeatureIcon } from '@/lib/featureIcons';
+import { getT } from '@/lib/i18n';
+import type { Language } from '@/types';
 import { FileUpload } from '@/components/FileUpload';
 import { RichTextEditor } from '@/components/RichTextEditor';
 
@@ -218,7 +221,7 @@ export default function AdminTripDetailPage() {
       )}
 
       {activeSection === 'itinerary' && (
-        <TripItinerarySection tripId={trip.id} days={trip.itineraryDays ?? []} onRefresh={fetchTrip} onError={setError} />
+        <TripItinerarySection tripId={trip.id} days={trip.itineraryDays ?? []} meals={trip.meals ?? []} hotels={trip.hotels ?? []} onRefresh={fetchTrip} onError={setError} />
       )}
 
       {activeSection === 'included' && (
@@ -514,17 +517,32 @@ function TripFeaturesSection({
   );
 }
 
+const ITINERARY_DAY_COLORS = [
+  { header: 'bg-blue-600', check: 'text-blue-600', checkBg: 'bg-blue-100 dark:bg-blue-900/40' },
+  { header: 'bg-emerald-600', check: 'text-emerald-600', checkBg: 'bg-emerald-100 dark:bg-emerald-900/40' },
+  { header: 'bg-amber-500', check: 'text-amber-600', checkBg: 'bg-amber-100 dark:bg-amber-900/40' },
+  { header: 'bg-violet-600', check: 'text-violet-600', checkBg: 'bg-violet-100 dark:bg-violet-900/40' },
+  { header: 'bg-rose-500', check: 'text-rose-600', checkBg: 'bg-rose-100 dark:bg-rose-900/40' },
+];
+
 function TripItinerarySection({
   tripId,
   days,
+  meals,
+  hotels,
   onRefresh,
   onError,
 }: {
   tripId: string;
   days: TripItineraryDay[];
+  meals: TripMeal[];
+  hotels: TripHotel[];
   onRefresh: () => void;
   onError: (m: string) => void;
 }) {
+  const locale = useAppSelector((s) => s.language.locale) as Language;
+  const t = getT(locale);
+  const isAr = locale === 'ar';
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [dayNumber, setDayNumber] = useState(1);
@@ -630,43 +648,134 @@ function TripItinerarySection({
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl border dark:border-slate-600 p-6">
       <h2 className="text-lg font-bold mb-4">البرنامج التفصيلي</h2>
-      <div className="space-y-4 mb-6">
-        {days.map((d) => {
+      <p className="text-slate-500 dark:text-slate-400 text-sm mb-4">عرض البرنامج كما يظهر للزبون</p>
+      <div className="space-y-6 mb-6 overflow-x-hidden">
+        {days.map((d, i) => {
           if (editingId === d.id) return null;
+          const colors = ITINERARY_DAY_COLORS[i % ITINERARY_DAY_COLORS.length];
+          const dayTitle = isAr ? (d.titleAr ?? d.title) : d.title;
+          const contentText = isAr ? (d.contentAr ?? d.content) : (d.content ?? d.contentAr);
+          const extraItems = (() => {
+            try {
+              const en = d.extraInfo ? (JSON.parse(d.extraInfo) as string[]) : [];
+              const ar = d.extraInfoAr ? (JSON.parse(d.extraInfoAr) as string[]) : [];
+              const max = Math.max(en.length, ar.length);
+              if (max === 0) return [];
+              return Array.from({ length: max }, (_, idx) => isAr ? (ar[idx] ?? en[idx] ?? '') : (en[idx] ?? ar[idx] ?? ''));
+            } catch {
+              const s = isAr ? (d.extraInfoAr ?? d.extraInfo) : (d.extraInfo ?? d.extraInfoAr);
+              return s ? [s] : [];
+            }
+          })();
+          const dayMeals = meals.find((m) => m.dayNumber === d.dayNumber);
+          const dayHotel = hotels.find((h) => h.nightNumber === d.dayNumber);
+          const isHtmlContent = contentText && contentText.includes('<');
+          const dayNames = [t.trip.dayFirst, t.trip.daySecond, t.trip.dayThird, t.trip.dayFourth, t.trip.dayFifth, t.trip.daySixth, t.trip.daySeventh];
+          const dayLabel = isAr ? (dayNames[d.dayNumber - 1] ? `اليوم ${dayNames[d.dayNumber - 1]}` : t.trip.dayN(d.dayNumber)) : t.trip.dayN(d.dayNumber);
+
           return (
-          <div key={d.id} className="p-4 border dark:border-slate-600 rounded-lg">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-bold">{d.titleAr ?? d.title}</h3>
+            <div key={d.id} className="rounded-2xl overflow-hidden shadow-lg bg-white dark:bg-slate-800 min-w-0 border border-slate-200 dark:border-slate-600">
+              {/* Header */}
+              <div className={`${colors.header} px-4 sm:px-6 py-4 flex items-center justify-between gap-4`}>
+                <div className="flex items-center gap-4 min-w-0">
+                  <span className="flex items-center justify-center w-10 h-10 rounded-full bg-white/20 text-white font-bold shrink-0">
+                    {d.dayNumber}
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="text-white font-bold text-lg">{dayLabel}</h3>
+                    <p className="text-white/90 text-sm truncate">{dayTitle}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button type="button" onClick={() => startEdit(d)} className="px-3 py-1 rounded-lg bg-white/20 text-white text-sm hover:bg-white/30">تعديل</button>
+                  <button type="button" onClick={() => handleRemove(d.id)} className="px-3 py-1 rounded-lg bg-red-500/80 text-white text-sm hover:bg-red-500">حذف</button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-4 sm:p-6 space-y-4 min-w-0 overflow-x-hidden">
                 {(d.durationAr || d.duration) && (
-                  <span className="text-sm text-slate-500">{d.durationAr ?? d.duration}</span>
+                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                    <Clock size={18} className={colors.check} />
+                    <span className="text-sm">{isAr ? (d.durationAr ?? d.duration) : (d.duration ?? d.durationAr)}</span>
+                  </div>
                 )}
-                {d.dayNumber > 0 && <span className="text-xs text-slate-400 mr-2">· اليوم {d.dayNumber}</span>}
+
+                {contentText && (
+                  isHtmlContent ? (
+                    <div
+                      className={`prose prose-slate prose-sm dark:prose-invert max-w-none min-w-0 w-full
+                        prose-headings:font-bold prose-p:mb-3 prose-p:leading-relaxed
+                        prose-ul:my-3 prose-ol:my-3 prose-li:my-1
+                        [&_ul]:list-disc [&_ol]:list-decimal
+                        ${isAr ? '[&_ul]:pr-6 [&_ol]:pr-6 [&_ul]:list-outside [&_ol]:list-outside' : '[&_ul]:pl-6 [&_ol]:pl-6 [&_ul]:list-outside [&_ol]:list-outside'}
+                        prose-blockquote:border-slate-300 dark:prose-blockquote:border-slate-600
+                        [&_.ql-align-center]:text-center [&_.ql-align-right]:text-right [&_.ql-align-left]:text-left
+                        dark:[&_p]:!text-slate-300 dark:[&_li]:!text-slate-300 dark:[&_span]:!text-slate-300
+                        [&_*]:leading-relaxed
+                        ${isAr ? 'text-right' : 'text-left'}`}
+                      dir={isAr ? 'rtl' : 'ltr'}
+                    >
+                      <div
+                        className="prose-quill-content min-w-0 w-full max-w-full [&_*]:whitespace-normal [&_*]:break-normal text-slate-700 dark:text-slate-300"
+                        style={{ overflowWrap: 'normal', wordBreak: 'normal' }}
+                        dangerouslySetInnerHTML={{ __html: contentText.replace(/&nbsp;/g, ' ') }}
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      {contentText.trim().split(/\r?\n/).filter(Boolean).map((line, j) => (
+                        <div key={j} className="flex items-start gap-3">
+                          <span className={`mt-0.5 flex items-center justify-center w-5 h-5 rounded-full ${colors.checkBg} ${colors.check} shrink-0`}>
+                            <Check size={12} strokeWidth={3} />
+                          </span>
+                          <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed break-normal min-w-0">{line}</p>
+                        </div>
+                      ))}
+                    </>
+                  )
+                )}
+
+                {extraItems.length > 0 && (
+                  <div className="mt-4 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30 space-y-2">
+                    {extraItems.filter(Boolean).map((text, j) => (
+                      <div key={j} className="flex items-start gap-3">
+                        <span className="mt-0.5 flex items-center justify-center w-5 h-5 rounded-full bg-amber-200/60 dark:bg-amber-800/40 text-amber-700 dark:text-amber-300 shrink-0">
+                          <Check size={12} strokeWidth={3} />
+                        </span>
+                        <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-wrap break-normal min-w-0">{text}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="flex gap-2 shrink-0">
-                <button type="button" onClick={() => startEdit(d)} className="text-[#b8860b] text-sm hover:underline">تعديل</button>
-                <button type="button" onClick={() => handleRemove(d.id)} className="text-red-600 text-sm hover:underline">حذف</button>
-              </div>
+
+              {/* Footer: Meals & Hotel */}
+              {(dayMeals || dayHotel) && (
+                <div className="px-4 sm:px-6 pb-4 sm:pb-6 flex flex-wrap gap-4 text-sm text-slate-500 dark:text-slate-400 min-w-0 overflow-x-hidden">
+                  {dayMeals && (dayMeals.breakfastAr || dayMeals.lunchAr || dayMeals.dinnerAr || dayMeals.breakfast || dayMeals.lunch || dayMeals.dinner) && (
+                    <div className="flex items-center gap-2">
+                      <Utensils size={18} className="text-slate-400 shrink-0" />
+                      <span>
+                        {t.trip.mealsLabel}:{' '}
+                        {(isAr ? [dayMeals.breakfastAr, dayMeals.lunchAr, dayMeals.dinnerAr] : [dayMeals.breakfast, dayMeals.lunch, dayMeals.dinner])
+                          .filter(Boolean)
+                          .join(t.trip.mealsJoin)}
+                      </span>
+                    </div>
+                  )}
+                  {dayHotel && (
+                    <div className="flex items-center gap-2">
+                      <Building2 size={18} className="text-slate-400 shrink-0" />
+                      <span>{isAr ? (dayHotel.hotelNameAr ?? dayHotel.hotelName) : dayHotel.hotelName}</span>
+                      {(dayHotel.cityAr || dayHotel.city) && (
+                        <span className="text-slate-400">· {isAr ? (dayHotel.cityAr ?? dayHotel.city) : dayHotel.city}</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            {(d.contentAr || d.content) && (
-              <div
-                className="mt-2 text-sm text-slate-600 dark:text-slate-300 prose prose-sm dark:prose-invert max-w-none [&_ul]:list-disc [&_ol]:list-decimal"
-                dangerouslySetInnerHTML={{
-                  __html: (d.contentAr || d.content || '').includes('<') ? (d.contentAr || d.content || '') : `<p>${(d.contentAr || d.content || '').replace(/\n/g, '<br/>')}</p>`,
-                }}
-              />
-            )}
-            {(d.extraInfoAr || d.extraInfo) && (() => {
-              const items = parseExtraInfo(d.extraInfo, d.extraInfoAr).filter((it) => it.en || it.ar);
-              return items.length ? (
-                <ul className="mt-2 space-y-1">
-                  {items.map((it, i) => (
-                    <li key={i} className="text-sm text-green-600 dark:text-green-400">✓ {it.ar || it.en}</li>
-                  ))}
-                </ul>
-              ) : null;
-            })()}
-          </div>
           );
         })}
       </div>
@@ -1019,19 +1128,92 @@ function TripMealsSection({
         </table>
       </div>
       {(adding || editingId) ? (
-        <form onSubmit={editingId ? handleUpdate : handleAdd} className="space-y-3 p-4 border dark:border-slate-600 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-3">
-          <input type="number" min={1} value={dayNumber} onChange={(e) => setDayNumber(Number(e.target.value))} placeholder="اليوم" className="border dark:border-slate-600 dark:bg-slate-700 rounded px-3 py-2" required />
-          <input type="text" value={breakfast} onChange={(e) => setBreakfast(e.target.value)} placeholder="الإفطار (إنجليزي)" className="border dark:border-slate-600 dark:bg-slate-700 rounded px-3 py-2" />
-          <input type="text" value={breakfastAr} onChange={(e) => setBreakfastAr(e.target.value)} placeholder="الإفطار (عربي)" className="border dark:border-slate-600 dark:bg-slate-700 rounded px-3 py-2" />
-          <input type="text" value={lunch} onChange={(e) => setLunch(e.target.value)} placeholder="الغداء (إنجليزي)" className="border dark:border-slate-600 dark:bg-slate-700 rounded px-3 py-2" />
-          <input type="text" value={lunchAr} onChange={(e) => setLunchAr(e.target.value)} placeholder="الغداء (عربي)" className="border dark:border-slate-600 dark:bg-slate-700 rounded px-3 py-2" />
-          <input type="text" value={dinner} onChange={(e) => setDinner(e.target.value)} placeholder="العشاء (إنجليزي)" className="border dark:border-slate-600 dark:bg-slate-700 rounded px-3 py-2" />
-          <input type="text" value={dinnerAr} onChange={(e) => setDinnerAr(e.target.value)} placeholder="العشاء (عربي)" className="border dark:border-slate-600 dark:bg-slate-700 rounded px-3 py-2" />
-          <div className="md:col-span-2 flex gap-2">
-            <button type="submit" className="bg-[#b8860b] text-white px-4 py-2 rounded-lg">
+        <form onSubmit={editingId ? handleUpdate : handleAdd} className="space-y-4 p-4 border dark:border-slate-600 rounded-lg" dir="rtl">
+          <div>
+            <label className="block text-sm font-medium mb-1 dark:text-slate-300">اليوم</label>
+            <input
+              type="number"
+              min={1}
+              value={dayNumber}
+              onChange={(e) => setDayNumber(Number(e.target.value))}
+              placeholder="اليوم"
+              className="w-full max-w-[120px] border dark:border-slate-600 dark:bg-slate-700 rounded-lg px-3 py-2"
+              required
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1 dark:text-slate-300">الإفطار (إنجليزي)</label>
+              <input
+                type="text"
+                value={breakfast}
+                onChange={(e) => setBreakfast(e.target.value)}
+                placeholder="Breakfast"
+                className="w-full border dark:border-slate-600 dark:bg-slate-700 rounded-lg px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1 dark:text-slate-300">الإفطار (عربي)</label>
+              <input
+                type="text"
+                value={breakfastAr}
+                onChange={(e) => setBreakfastAr(e.target.value)}
+                placeholder="الإفطار"
+                className="w-full border dark:border-slate-600 dark:bg-slate-700 rounded-lg px-3 py-2"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1 dark:text-slate-300">الغداء (إنجليزي)</label>
+              <input
+                type="text"
+                value={lunch}
+                onChange={(e) => setLunch(e.target.value)}
+                placeholder="Lunch"
+                className="w-full border dark:border-slate-600 dark:bg-slate-700 rounded-lg px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1 dark:text-slate-300">الغداء (عربي)</label>
+              <input
+                type="text"
+                value={lunchAr}
+                onChange={(e) => setLunchAr(e.target.value)}
+                placeholder="الغداء"
+                className="w-full border dark:border-slate-600 dark:bg-slate-700 rounded-lg px-3 py-2"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1 dark:text-slate-300">العشاء (إنجليزي)</label>
+              <input
+                type="text"
+                value={dinner}
+                onChange={(e) => setDinner(e.target.value)}
+                placeholder="Dinner"
+                className="w-full border dark:border-slate-600 dark:bg-slate-700 rounded-lg px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1 dark:text-slate-300">العشاء (عربي)</label>
+              <input
+                type="text"
+                value={dinnerAr}
+                onChange={(e) => setDinnerAr(e.target.value)}
+                placeholder="العشاء"
+                className="w-full border dark:border-slate-600 dark:bg-slate-700 rounded-lg px-3 py-2"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <button type="submit" className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2 rounded-xl font-medium">
               {editingId ? 'حفظ التعديل' : 'إضافة'}
             </button>
-            <button type="button" onClick={resetForm} className="border dark:border-slate-600 px-4 py-2 rounded-lg">إلغاء</button>
+            <button type="button" onClick={resetForm} className="border dark:border-slate-600 px-5 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700">
+              إلغاء
+            </button>
           </div>
         </form>
       ) : (
@@ -1125,16 +1307,38 @@ function TripHotelsSection({
         </table>
       </div>
       {adding ? (
-        <form onSubmit={handleAdd} className="space-y-3 p-4 border dark:border-slate-600 rounded-lg">
-          <input type="number" min={1} value={nightNumber} onChange={(e) => setNightNumber(Number(e.target.value))} placeholder="الليلة" className="w-full border dark:border-slate-600 dark:bg-slate-700 rounded px-3 py-2" required />
-          <input type="text" value={hotelName} onChange={(e) => setHotelName(e.target.value)} placeholder="اسم الفندق (إنجليزي)" className="w-full border dark:border-slate-600 dark:bg-slate-700 rounded px-3 py-2" required />
-          <input type="text" value={hotelNameAr} onChange={(e) => setHotelNameAr(e.target.value)} placeholder="اسم الفندق (عربي)" className="w-full border dark:border-slate-600 dark:bg-slate-700 rounded px-3 py-2" />
-          <input type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="المدينة (إنجليزي)" className="w-full border dark:border-slate-600 dark:bg-slate-700 rounded px-3 py-2" />
-          <input type="text" value={cityAr} onChange={(e) => setCityAr(e.target.value)} placeholder="المدينة (عربي)" className="w-full border dark:border-slate-600 dark:bg-slate-700 rounded px-3 py-2" />
-          <input type="text" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="الفئة (مثال: 5*، فاخر)" className="w-full border dark:border-slate-600 dark:bg-slate-700 rounded px-3 py-2" />
-          <div className="flex gap-2">
-            <button type="submit" className="bg-[#b8860b] text-white px-4 py-2 rounded-lg">إضافة</button>
-            <button type="button" onClick={() => setAdding(false)} className="border dark:border-slate-600 px-4 py-2 rounded-lg">إلغاء</button>
+        <form onSubmit={handleAdd} className="space-y-4 p-4 border dark:border-slate-600 rounded-lg">
+          <div>
+            <label className="block text-sm font-medium mb-1 dark:text-slate-300">الليلة</label>
+            <input type="number" min={1} value={nightNumber} onChange={(e) => setNightNumber(Number(e.target.value))} placeholder="الليلة" className="w-full max-w-[120px] border dark:border-slate-600 dark:bg-slate-700 rounded-lg px-3 py-2" required />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1 dark:text-slate-300">اسم الفندق (إنجليزي)</label>
+              <input type="text" value={hotelName} onChange={(e) => setHotelName(e.target.value)} placeholder="Hotel Name" className="w-full border dark:border-slate-600 dark:bg-slate-700 rounded-lg px-3 py-2" required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1 dark:text-slate-300">اسم الفندق (عربي)</label>
+              <input type="text" value={hotelNameAr} onChange={(e) => setHotelNameAr(e.target.value)} placeholder="اسم الفندق" className="w-full border dark:border-slate-600 dark:bg-slate-700 rounded-lg px-3 py-2" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1 dark:text-slate-300">المدينة (إنجليزي)</label>
+              <input type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" className="w-full border dark:border-slate-600 dark:bg-slate-700 rounded-lg px-3 py-2" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1 dark:text-slate-300">المدينة (عربي)</label>
+              <input type="text" value={cityAr} onChange={(e) => setCityAr(e.target.value)} placeholder="المدينة" className="w-full border dark:border-slate-600 dark:bg-slate-700 rounded-lg px-3 py-2" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1 dark:text-slate-300">الفئة</label>
+            <input type="text" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="مثال: 5*، فاخر" className="w-full max-w-[200px] border dark:border-slate-600 dark:bg-slate-700 rounded-lg px-3 py-2" />
+          </div>
+          <div className="flex gap-2 pt-2">
+            <button type="submit" className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2 rounded-xl font-medium">إضافة</button>
+            <button type="button" onClick={() => setAdding(false)} className="border dark:border-slate-600 px-5 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700">إلغاء</button>
           </div>
         </form>
       ) : (

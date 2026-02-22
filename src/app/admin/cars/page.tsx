@@ -9,6 +9,20 @@ import { api } from '@/lib/api';
 import { endpoints } from '@/lib/endpoints';
 import { getImageUrl } from '@/lib/upload';
 import { CarForm } from './CarForm';
+import { AdminTableLoader } from '@/app/admin/components/AdminTableLoader';
+import { AdminActionButtons } from '@/app/admin/components/AdminActionButtons';
+import { DeleteConfirmModal } from '@/app/admin/components/DeleteConfirmModal';
+import {
+  tableWrapper,
+  tableClass,
+  theadClass,
+  thClass,
+  tbodyTrClass,
+  tdClass,
+  badgeActive,
+  badgeInactive,
+  AdminPagination,
+} from '@/app/admin/components/AdminTable';
 
 type Car = {
   id: string;
@@ -43,7 +57,7 @@ export default function AdminCarsPage() {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingCar, setEditingCar] = useState<Car | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -83,22 +97,17 @@ export default function AdminCarsPage() {
   const handleDelete = async (id: string) => {
     try {
       await api.delete(endpoints.cars.delete(id));
-      setDeleteConfirm(null);
+      setDeleteModal({ open: false, id: null });
       fetchCars();
     } catch (e) {
       setError((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'فشل الحذف');
     }
   };
 
-  const handleFormSuccess = (createdCar?: Car) => {
-    if (createdCar) {
-      setEditingCar(createdCar);
-      fetchCars();
-    } else {
-      setShowForm(false);
-      setEditingCar(null);
-      fetchCars();
-    }
+  const handleFormSuccess = () => {
+    setShowForm(false);
+    setEditingCar(null);
+    fetchCars();
   };
 
   const openEdit = (car: Car) => {
@@ -131,140 +140,96 @@ export default function AdminCarsPage() {
   const totalPages = Math.ceil(total / limit);
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">إدارة السيارات</h1>
+    <div dir="rtl">
+      <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+        <h1 className="text-xl font-bold text-slate-800 dark:text-white">إدارة السيارات</h1>
         <button
           type="button"
           onClick={openAdd}
-          className="bg-[#b8860b] text-white px-4 py-2 rounded-lg hover:bg-[#9a7209]"
+          className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors"
         >
           إضافة سيارة
         </button>
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">{error}</div>
+        <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-xl text-sm">{error}</div>
       )}
 
       {loading ? (
-        <p className="text-slate-500">جاري التحميل...</p>
+        <AdminTableLoader rows={6} cols={7} />
       ) : cars.length === 0 ? (
-        <p className="text-slate-500">لا توجد سيارات</p>
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-12 text-center text-slate-500 dark:text-slate-400">
+          لا توجد سيارات
+        </div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className="text-right p-3 font-medium">الصورة</th>
-                <th className="text-right p-3 font-medium">الاسم</th>
-                <th className="text-right p-3 font-medium">الفئة</th>
-                <th className="text-right p-3 font-medium">المقاعد</th>
-                <th className="text-right p-3 font-medium">السعر</th>
-                <th className="text-right p-3 font-medium">الحالة</th>
-                <th className="text-right p-3 font-medium">إجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cars.map((c) => (
-                <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="p-3">
-                    <div className="w-12 h-12 rounded overflow-hidden bg-slate-200">
-                      {c.images?.[0] ? (
-                        <img
-                          src={getImageUrl(c.images[0].imagePath)}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-xs text-slate-400 flex items-center justify-center h-full">—</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="p-3 font-medium">{c.nameAr ?? c.name}</td>
-                  <td className="p-3">{getCategoryLabel(c.category)}</td>
-                  <td className="p-3">{c.seats}</td>
-                  <td className="p-3">{c.basePricePerDay} ر.ع./يوم</td>
-                  <td className="p-3">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleActive(c)}
-                      className={`px-2 py-1 rounded text-xs font-medium ${
-                        c.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'
-                      }`}
-                    >
-                      {c.isActive ? 'متاحة' : 'غير متاحة'}
-                    </button>
-                  </td>
-                  <td className="p-3">
-                    <div className="flex gap-2 justify-end">
+        <div className={tableWrapper}>
+          <div className="overflow-x-auto">
+            <table className={tableClass}>
+              <thead className={theadClass}>
+                <tr>
+                  <th className={thClass}>الصورة</th>
+                  <th className={thClass}>الاسم</th>
+                  <th className={thClass}>الفئة</th>
+                  <th className={thClass}>المقاعد</th>
+                  <th className={thClass}>السعر</th>
+                  <th className={thClass}>الحالة</th>
+                  <th className={thClass}>إجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cars.map((c) => (
+                  <tr key={c.id} className={tbodyTrClass}>
+                    <td className={tdClass}>
+                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-600 shrink-0">
+                        {c.images?.[0] ? (
+                          <img
+                            src={getImageUrl(c.images[0].imagePath)}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-xs text-slate-400 flex items-center justify-center h-full">—</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className={tdClass + ' font-medium'}>{c.nameAr ?? c.name}</td>
+                    <td className={tdClass}>{getCategoryLabel(c.category)}</td>
+                    <td className={tdClass}>{c.seats}</td>
+                    <td className={tdClass}>{c.basePricePerDay} ر.ع./يوم</td>
+                    <td className={tdClass}>
                       <button
                         type="button"
-                        onClick={() => openEdit(c)}
-                        className="text-[#b8860b] hover:underline text-sm"
+                        onClick={() => handleToggleActive(c)}
+                        className={c.isActive ? badgeActive : badgeInactive}
                       >
-                        تعديل
+                        {c.isActive ? 'متاحة' : 'غير متاحة'}
                       </button>
-                      {deleteConfirm === c.id ? (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(c.id)}
-                            className="text-red-600 hover:underline text-sm"
-                          >
-                            تأكيد
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeleteConfirm(null)}
-                            className="text-slate-500 hover:underline text-sm"
-                          >
-                            إلغاء
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setDeleteConfirm(c.id)}
-                          className="text-red-600 hover:underline text-sm"
-                        >
-                          حذف
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {totalPages > 1 && (
-            <div className="flex justify-center gap-2 p-4 border-t border-slate-200">
-              <button
-                type="button"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="px-3 py-1 rounded border disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                السابق
-              </button>
-              <span className="px-3 py-1">{page} / {totalPages}</span>
-              <button
-                type="button"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-                className="px-3 py-1 rounded border disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                التالي
-              </button>
-            </div>
-          )}
+                    </td>
+                    <td className={tdClass}>
+                      <AdminActionButtons
+                        onEdit={() => openEdit(c)}
+                        onDelete={() => setDeleteModal({ open: true, id: c.id })}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <AdminPagination page={page} totalPages={totalPages} onPrev={() => setPage((p) => p - 1)} onNext={() => setPage((p) => p + 1)} />
         </div>
       )}
 
       {showForm && (
         <CarForm car={editingCar} onSuccess={handleFormSuccess} onClose={closeForm} />
       )}
+
+      <DeleteConfirmModal
+        open={deleteModal.open}
+        onClose={() => setDeleteModal({ open: false, id: null })}
+        onConfirm={() => deleteModal.id && handleDelete(deleteModal.id)}
+      />
     </div>
   );
 }

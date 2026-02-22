@@ -358,8 +358,8 @@ export default function TripDetailPage() {
 
       {/* برنامج الرحلة */}
       {itineraryDays.length > 0 && (
-        <section className="py-16 bg-slate-50 dark:bg-slate-900/50">
-          <div className="container mx-auto px-4 max-w-4xl">
+        <section className="py-16 bg-slate-50 dark:bg-slate-900/50 overflow-x-hidden">
+          <div className="container mx-auto px-4 max-w-4xl min-w-0">
             <h2 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100 text-center mb-2">
               {t.trip.itineraryTitle}
             </h2>
@@ -388,7 +388,7 @@ export default function TripDetailPage() {
                 const isHtmlContent = contentText && contentText.includes('<');
 
                 return (
-                  <div key={day.id} className="rounded-2xl overflow-hidden shadow-lg bg-white dark:bg-slate-800">
+                  <div key={day.id} className="rounded-2xl overflow-hidden shadow-lg bg-white dark:bg-slate-800 min-w-0">
                     {/* Header */}
                     <div className={`${colors.header} px-6 py-4 flex items-center gap-4`}>
                       <span className="flex items-center justify-center w-10 h-10 rounded-full bg-white/20 text-white font-bold shrink-0">
@@ -407,7 +407,7 @@ export default function TripDetailPage() {
                     </div>
 
                     {/* Content */}
-                    <div className="p-6 space-y-4">
+                    <div className="p-4 sm:p-6 space-y-4 min-w-0 overflow-x-hidden">
                       {day.durationAr || day.duration ? (
                         <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                           <Clock size={18} className={colors.check} />
@@ -418,10 +418,24 @@ export default function TripDetailPage() {
                       {contentText && (
                         isHtmlContent ? (
                           <div
-                            className={`prose prose-sm max-w-none text-slate-700 dark:text-slate-300 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pr-4 [&_ol]:pr-4 [&_p]:mb-2 [&_li]:mb-1 ${colors.check} [&_strong]:font-bold`}
+                            className={`prose prose-slate prose-sm dark:prose-invert max-w-none min-w-0 w-full
+                              prose-headings:font-bold prose-p:mb-3 prose-p:leading-relaxed
+                              prose-ul:my-3 prose-ol:my-3 prose-li:my-1
+                              [&_ul]:list-disc [&_ol]:list-decimal
+                              ${isAr ? '[&_ul]:pr-6 [&_ol]:pr-6 [&_ul]:list-outside [&_ol]:list-outside' : '[&_ul]:pl-6 [&_ol]:pl-6 [&_ul]:list-outside [&_ol]:list-outside'}
+                              prose-blockquote:border-slate-300 dark:prose-blockquote:border-slate-600
+                              [&_.ql-align-center]:text-center [&_.ql-align-right]:text-right [&_.ql-align-left]:text-left
+                              dark:[&_p]:!text-slate-300 dark:[&_li]:!text-slate-300 dark:[&_span]:!text-slate-300
+                              [&_*]:leading-relaxed
+                              ${isAr ? 'text-right' : 'text-left'}`}
                             dir={isAr ? 'rtl' : 'ltr'}
-                            dangerouslySetInnerHTML={{ __html: contentText }}
-                          />
+                          >
+                            <div
+                              className="prose-quill-content min-w-0 w-full max-w-full [&_*]:whitespace-normal [&_*]:break-normal text-slate-700 dark:text-slate-300"
+                              style={{ overflowWrap: 'normal', wordBreak: 'normal' }}
+                              dangerouslySetInnerHTML={{ __html: contentText.replace(/&nbsp;/g, ' ') }}
+                            />
+                          </div>
                         ) : (
                           <>
                             {contentText.trim().split(/\r?\n/).filter(Boolean).map((line, j) => (
@@ -429,7 +443,7 @@ export default function TripDetailPage() {
                                 <span className={`mt-0.5 flex items-center justify-center w-5 h-5 rounded-full ${colors.checkBg} ${colors.check} shrink-0`}>
                                   <Check size={12} strokeWidth={3} />
                                 </span>
-                                <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed">{line}</p>
+                                <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed break-normal min-w-0">{line}</p>
                               </div>
                             ))}
                           </>
@@ -443,7 +457,7 @@ export default function TripDetailPage() {
                               <span className="mt-0.5 flex items-center justify-center w-5 h-5 rounded-full bg-amber-200/60 dark:bg-amber-800/40 text-amber-700 dark:text-amber-300 shrink-0">
                                 <Check size={12} strokeWidth={3} />
                               </span>
-                              <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">{text}</p>
+                              <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-wrap break-normal min-w-0">{text}</p>
                             </div>
                           ))}
                         </div>
@@ -451,7 +465,7 @@ export default function TripDetailPage() {
                     </div>
 
                     {/* Footer: Meals & Hotel */}
-                    <div className="px-6 pb-6 flex flex-wrap gap-4 text-sm text-slate-500 dark:text-slate-400">
+                    <div className="px-4 sm:px-6 pb-4 sm:pb-6 flex flex-wrap gap-4 text-sm text-slate-500 dark:text-slate-400 min-w-0 overflow-x-hidden">
                       {dayMeals && (dayMeals.breakfastAr || dayMeals.lunchAr || dayMeals.dinnerAr || dayMeals.breakfast || dayMeals.lunch || dayMeals.dinner) && (
                         <div className="flex items-center gap-2">
                           <Utensils size={18} className="text-slate-400 shrink-0" />

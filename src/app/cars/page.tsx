@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { endpoints } from "@/lib/endpoints";
@@ -74,16 +75,21 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function CarsPage() {
+  const searchParams = useSearchParams();
   const locale = useAppSelector((s) => s.language.locale) as Language;
   const t = getT(locale);
   const isAr = locale === "ar";
 
+  const catFromUrl = searchParams.get("category") ?? "";
+  const transFromUrl = searchParams.get("transmission") ?? "";
+  const seatsFromUrl = searchParams.get("seatsRange") ?? "";
+
   const { isFavorited, getFavoriteId, refetch } = useFavorites();
   const [cars, setCars] = useState<Car[]>([]);
   const [loading, setLoading] = useState(true);
-  const [category, setCategory] = useState<string>("");
-  const [transmission, setTransmission] = useState<string>("");
-  const [seatsRange, setSeatsRange] = useState<string>("");
+  const [category, setCategory] = useState<string>(catFromUrl || "");
+  const [transmission, setTransmission] = useState<string>(transFromUrl || "");
+  const [seatsRange, setSeatsRange] = useState<string>(seatsFromUrl || "");
   const [pricePeriodByCarId, setPricePeriodByCarId] = useState<
     Record<string, PricePeriod>
   >({});
@@ -92,6 +98,12 @@ export default function CarsPage() {
   >({});
 
   const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    setCategory(catFromUrl || "");
+    setTransmission(transFromUrl || "");
+    setSeatsRange(seatsFromUrl || "");
+  }, [catFromUrl, transFromUrl, seatsFromUrl]);
 
   useEffect(() => {
     abortRef.current?.abort();

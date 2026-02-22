@@ -8,7 +8,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { logout } from '@/store/features/authSlice';
 import { ThemeLanguageSwitcher } from './ThemeLanguageSwitcher';
 import { getT } from '@/lib/i18n';
-import { Phone, User, Menu, X, CalendarCheck, Heart, LogOut } from 'lucide-react';
+import { Phone, User, Menu, X, CalendarCheck, Heart, LogOut, LayoutDashboard } from 'lucide-react';
 
 const PHONE = '+968 9701 8484';
 
@@ -52,7 +52,8 @@ export function AppHeader() {
 
   const pathname = usePathname() ?? '';
   const navItems = [
-    { href: '/', label: t.nav.discoverOman },
+    { href: '/', label: t.nav.home },
+    { href: '/discover-oman', label: t.nav.discoverOman },
     { href: '/trips', label: t.nav.trips },
     { href: '/cars', label: t.nav.cars },
     { href: '/landmarks', label: t.nav.landmarks },
@@ -133,6 +134,16 @@ export function AppHeader() {
                       <Heart size={18} className="shrink-0" aria-hidden />
                       {t.nav.favorites}
                     </Link>
+                    {user?.role === 'ADMIN' && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                      >
+                        <LayoutDashboard size={18} className="shrink-0" aria-hidden />
+                        {t.nav.adminDashboard}
+                      </Link>
+                    )}
                     <button
                       type="button"
                       onClick={handleLogout}
@@ -194,6 +205,16 @@ export function AppHeader() {
                       <Heart size={18} className="shrink-0" aria-hidden />
                       {t.nav.favorites}
                     </Link>
+                    {user?.role === 'ADMIN' && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                      >
+                        <LayoutDashboard size={18} className="shrink-0" aria-hidden />
+                        {t.nav.adminDashboard}
+                      </Link>
+                    )}
                     <button
                       type="button"
                       onClick={handleLogout}
@@ -287,6 +308,16 @@ export function AppHeader() {
                     <Heart size={18} className="shrink-0" aria-hidden />
                     {t.nav.favorites}
                   </Link>
+                  {user?.role === 'ADMIN' && (
+                    <Link
+                      href="/admin"
+                      onClick={closeSidebar}
+                      className="flex items-center gap-2 py-3 px-3 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    >
+                      <LayoutDashboard size={18} className="shrink-0" aria-hidden />
+                      {t.nav.adminDashboard}
+                    </Link>
+                  )}
                   <button
                     type="button"
                     onClick={handleLogout}

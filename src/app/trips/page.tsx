@@ -93,6 +93,7 @@ function TripsPageSkeleton() {
 function TripsPageContent() {
   const searchParams = useSearchParams();
   const landmarkIdFromUrl = searchParams.get('landmarkId');
+  const tripTypeFromUrl = searchParams.get('tripType');
   const locale = useAppSelector((s) => s.language.locale) as Language;
   const t = getT(locale);
   const isAr = locale === 'ar';
@@ -101,11 +102,15 @@ function TripsPageContent() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [landmarks, setLandmarks] = useState<Landmark[]>([]);
   const [selectedLandmarkId, setSelectedLandmarkId] = useState<string | null>(landmarkIdFromUrl);
+  const [selectedTripType, setSelectedTripType] = useState<string | null>(tripTypeFromUrl);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (landmarkIdFromUrl) setSelectedLandmarkId(landmarkIdFromUrl);
   }, [landmarkIdFromUrl]);
+  useEffect(() => {
+    if (tripTypeFromUrl && ['MARINE', 'GROUP', 'INDIVIDUAL'].includes(tripTypeFromUrl)) setSelectedTripType(tripTypeFromUrl);
+  }, [tripTypeFromUrl]);
 
   useEffect(() => {
     api.get(endpoints.landmarks.list(), { params: { limit: 50 } }).then(({ data }) => {
@@ -117,11 +122,12 @@ function TripsPageContent() {
     setLoading(true);
     const params: Record<string, string | number> = { limit: 50 };
     if (selectedLandmarkId) params.landmarkId = selectedLandmarkId;
+    if (selectedTripType) params.tripType = selectedTripType;
     api.get(endpoints.trips.list(), { params })
       .then(({ data }) => setTrips(data.data?.items ?? []))
       .catch(() => setTrips([]))
       .finally(() => setLoading(false));
-  }, [selectedLandmarkId]);
+  }, [selectedLandmarkId, selectedTripType]);
 
   const getLandmarkLabel = (l: Landmark) => (isAr ? (l.nameAr ?? l.name) : l.name);
 
@@ -191,17 +197,17 @@ function TripsPageContent() {
         >
           <div className="flex gap-2 min-w-max justify-center pb-2">
             <button
-              type="button"
-              onClick={() => setSelectedLandmarkId(null)}
-              className={`px-5 py-2.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
-                !selectedLandmarkId
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-600 hover:border-blue-400'
-              }`}
-            >
-              {t.tripsPage.all}
-            </button>
-            {landmarks.map((lm) => (
+                type="button"
+                onClick={() => setSelectedLandmarkId(null)}
+                className={`px-5 py-2.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                  !selectedLandmarkId
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-600 hover:border-blue-400'
+                }`}
+              >
+                {t.tripsPage.all}
+              </button>
+              {landmarks.map((lm) => (
               <button
                 key={lm.id}
                 type="button"
@@ -213,6 +219,20 @@ function TripsPageContent() {
                 }`}
               >
                 {getLandmarkLabel(lm)}
+              </button>
+            ))}
+            {(['', 'GROUP', 'INDIVIDUAL', 'MARINE'] as const).map((tt) => (
+              <button
+                key={tt || 'all-type'}
+                type="button"
+                onClick={() => setSelectedTripType(tt || null)}
+                className={`px-5 py-2.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                  (tt ? selectedTripType === tt : !selectedTripType)
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-600 hover:border-teal-400'
+                }`}
+              >
+                {!tt ? t.tripsPage.tripTypeAll : (tt === 'GROUP' ? t.tripsPage.tripTypeGroup : tt === 'INDIVIDUAL' ? t.tripsPage.tripTypeIndividual : t.tripsPage.tripTypeMarine)}
               </button>
             ))}
           </div>
