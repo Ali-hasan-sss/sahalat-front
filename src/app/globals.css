@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import 'react-quill-new/dist/quill.snow.css';
+
+/* خط كايرو للعربية وخط إنتر للإنجليزية */
+html[lang='ar'] body {
+  font-family: var(--font-cairo), sans-serif;
+}
+html[lang='en'] body {
+  font-family: var(--font-inter), sans-serif;
+}
+
+body {
+  color: #0f172a;
+  background: #f8fafc;
+}
+
+.dark body {
+  color: #e2e8f0;
+  background: #0f172a;
+}
+
+/* عرض القوائم في وصف المعلم (Quill HTML) */
+.prose-quill-content ol {
+  list-style-type: decimal;
+  list-style-position: outside;
+  padding-inline-start: 1.5rem;
+}
+.prose-quill-content ul {
+  list-style-type: disc;
+  list-style-position: outside;
+  padding-inline-start: 1.5rem;
+}
+.prose-quill-content li {
+  margin-block: 0.25rem;
+}
